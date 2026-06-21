@@ -1,0 +1,7 @@
+streamlit
+gitpython
+radon
+vulture
+bandit
+pip-audit
+google-generativeai
