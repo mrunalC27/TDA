@@ -1,6 +1,8 @@
 import os
 import re
 
+MAX_FILE_SIZE = 2_000_000
+
 
 class JSSecurityAnalyzer:
 
@@ -10,6 +12,7 @@ class JSSecurityAnalyzer:
     ):
 
         self.repo_path = repo_path
+        self._cache = None
 
     def get_js_files(self):
 
@@ -48,6 +51,9 @@ class JSSecurityAnalyzer:
         return files
 
     def analyze(self):
+
+        if self._cache is not None:
+            return self._cache
 
         findings = []
 
@@ -94,6 +100,9 @@ class JSSecurityAnalyzer:
 
             try:
 
+                if os.path.getsize(file_path) > MAX_FILE_SIZE:
+                    continue
+
                 with open(
                     file_path,
                     encoding="utf-8",
@@ -136,7 +145,8 @@ class JSSecurityAnalyzer:
 
                 continue
 
-        return findings
+        self._cache = findings
+        return self._cache
 
     def summary(self):
 

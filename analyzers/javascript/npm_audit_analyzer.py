@@ -97,10 +97,16 @@ class NPMAuditAnalyzer:
 
             for name, vuln in vulnerabilities.items():
 
+                fix_info = vuln.get("fixAvailable", False)
+
                 findings.append({
                     "package": name,
                     "severity": vuln.get("severity", "unknown"),
-                    "fix_available": vuln.get("fixAvailable", False)
+                    "fix_available": bool(fix_info),
+                    "fix_details": (
+                        fix_info.get("name", "") + " " + fix_info.get("version", "")
+                        if isinstance(fix_info, dict) else ""
+                    )
                 })
 
             self._cached_findings = findings

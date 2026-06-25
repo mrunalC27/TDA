@@ -84,7 +84,7 @@ class ComplexityAnalyzer:
 
                 for item in file_findings:
 
-                    item["file"] = file
+                    item["file"] = os.path.relpath(file_path, self.repo_path)
 
                     findings.append(item)
 

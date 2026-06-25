@@ -28,13 +28,17 @@ class DeadCodeAnalyzer:
 
         for item in v.get_unused_code():
 
+            if item.confidence < 80:
+                continue
+
             findings.append({
                 "name": item.name,
                 "type": item.typ,
                 "file": os.path.basename(
                     item.filename
                 ),
-                "line": item.first_lineno
+                "line": item.first_lineno,
+                "confidence": item.confidence
             })
 
         return findings

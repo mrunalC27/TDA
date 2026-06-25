@@ -1,0 +1,1 @@
+uvicorn backend.main:app --reload --port 8000 --reload-dir backend --reload-dir analyzers --reload-dir ai --reload-dir core --reload-dir scoring --reload-dir utils

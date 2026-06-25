@@ -1,4 +1,7 @@
-import os 
+import os
+
+MAX_FILE_SIZE = 2_000_000
+
 
 class JSComplexityAnalyzer:
 
@@ -8,6 +11,7 @@ class JSComplexityAnalyzer:
     ):
 
         self.repo_path = repo_path
+        self._cache = None
 
     def get_js_files(self):
 
@@ -18,9 +22,7 @@ class JSComplexityAnalyzer:
         ):
 
             dirs[:] = [
-
                 d for d in dirs
-
                 if d not in {
                     ".git",
                     "node_modules"
@@ -44,28 +46,38 @@ class JSComplexityAnalyzer:
                     )
 
         return js_files
+
     def analyze(self):
+
+        if self._cache is not None:
+            return self._cache
 
         findings = []
 
         js_files = self.get_js_files()
 
-        print("JS FILES FOUND:", len(js_files))
-
         for file_path in js_files:
 
-            with open(
-                file_path,
-                encoding="utf-8",
-                errors="ignore"
-            ) as f:
+            try:
 
-                content = f.read()
+                if os.path.getsize(file_path) > MAX_FILE_SIZE:
+                    continue
+
+                with open(
+                    file_path,
+                    encoding="utf-8",
+                    errors="ignore"
+                ) as f:
+
+                    content = f.read()
+
+            except Exception:
+
+                continue
 
             complexity = 1
 
             keywords = [
-
                 "if",
                 "else if",
                 "for",
@@ -84,43 +96,33 @@ class JSComplexityAnalyzer:
                 )
 
             findings.append({
-
                 "file":
-                os.path.basename(
-                    file_path
+                os.path.relpath(
+                    file_path,
+                    self.repo_path
                 ),
-
                 "complexity":
                 complexity
             })
 
-        print(
-            "TOTAL FINDINGS:",
-            len(findings)
-        )
+        self._cache = findings
+        return self._cache
 
-        return findings
-    
     def summary(self):
 
         findings = self.analyze()
 
         if not findings:
-
             return {}
 
         scores = [
-
             item["complexity"]
-
             for item in findings
         ]
 
         return {
-
             "files_analyzed":
             len(findings),
-
             "average_complexity":
             round(
                 sum(scores)
@@ -128,10 +130,8 @@ class JSComplexityAnalyzer:
                 len(scores),
                 2
             ),
-
             "max_complexity":
             max(scores),
-
             "high_risk_files":
             len(
                 [
@@ -141,18 +141,17 @@ class JSComplexityAnalyzer:
                 ]
             )
         }
+
     def hotspots(
         self,
         limit=10
     ):
 
-        findings = self.analyze()
+        findings = list(self.analyze())
 
         findings.sort(
-
             key=lambda x:
             x["complexity"],
-
             reverse=True
         )
 

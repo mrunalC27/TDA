@@ -1,6 +1,8 @@
 import os
 import re
 
+MAX_FILE_SIZE = 2_000_000
+
 
 class JSDeadCodeAnalyzer:
 
@@ -9,6 +11,7 @@ class JSDeadCodeAnalyzer:
         repo_path
     ):
         self.repo_path = repo_path
+        self._cache = None
 
     def get_js_files(self):
 
@@ -48,17 +51,29 @@ class JSDeadCodeAnalyzer:
 
     def analyze(self):
 
+        if self._cache is not None:
+            return self._cache
+
         findings = []
 
         for file_path in self.get_js_files():
 
-            with open(
-                file_path,
-                encoding="utf-8",
-                errors="ignore"
-            ) as f:
+            try:
 
-                content = f.read()
+                if os.path.getsize(file_path) > MAX_FILE_SIZE:
+                    continue
+
+                with open(
+                    file_path,
+                    encoding="utf-8",
+                    errors="ignore"
+                ) as f:
+
+                    content = f.read()
+
+            except Exception:
+
+                continue
 
             functions = re.findall(
                 r'function\s+(\w+)',
@@ -83,7 +98,8 @@ class JSDeadCodeAnalyzer:
                         )
                     })
 
-        return findings
+        self._cache = findings
+        return self._cache
 
     def summary(self):
 

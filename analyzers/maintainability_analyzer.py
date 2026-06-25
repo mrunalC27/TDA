@@ -57,8 +57,12 @@ class MaintainabilityAnalyzer:
     def __init__(self, repo_path):
 
         self.repo_path = repo_path
+        self._cache = None
 
     def analyze(self):
+
+        if self._cache is not None:
+            return self._cache
 
         results = []
 
@@ -86,8 +90,9 @@ class MaintainabilityAnalyzer:
                 if result:
                     results.append(result)
 
-        return results
-    
+        self._cache = results
+        return self._cache
+
     def summary(self):
 
         results = self.analyze()
@@ -114,10 +119,10 @@ class MaintainabilityAnalyzer:
             "lowest_score": min(scores),
             "highest_score": max(scores)
         }
-    
+
     def worst_files(self, top_n=10):
 
-        results = self.analyze()
+        results = list(self.analyze())
 
         results.sort(
             key=lambda x: x["score"]

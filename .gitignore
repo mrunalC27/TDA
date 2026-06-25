@@ -1,27 +1,29 @@
 # Environment variables (contains API keys)
 .env
-
 # Cloned repositories analyzed at runtime
 cloned_repos/
-
 # Python cache
 __pycache__/
 *.pyc
 *.pyo
-
 # Virtual environments
 venv/
 .venv/
 env/
-
 # IDE
 .vscode/
 .idea/
-
+data/
 # OS
 .DS_Store
 Thumbs.db
-
 # Reports output (if you start writing exported files here)
 reports/*
 !reports/.gitkeep
+# jscpd scratch output (recreated automatically when duplication analyzer runs)
+report/
+# Node / frontend build artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/*.local

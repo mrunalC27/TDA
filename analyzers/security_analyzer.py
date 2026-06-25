@@ -53,11 +53,16 @@ class SecurityAnalyzer:
 
         findings = self.analyze()
 
+        high_confidence_findings = [
+            f for f in findings
+            if f.get("confidence", "").upper() in ("HIGH", "MEDIUM")
+        ]
+
         high = 0
         medium = 0
         low = 0
 
-        for item in findings:
+        for item in high_confidence_findings:
 
             severity = item[
                 "severity"
@@ -74,6 +79,7 @@ class SecurityAnalyzer:
 
         return {
             "total_issues": len(findings),
+            "high_confidence_issues": len(high_confidence_findings),
             "high": high,
             "medium": medium,
             "low": low

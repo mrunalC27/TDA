@@ -1,5 +1,21 @@
 import os
 
+MAX_FILE_SIZE = 2_000_000
+
+
+def get_maintainability_status(score):
+
+    if score >= 85:
+        return "Excellent"
+
+    elif score >= 65:
+        return "Good"
+
+    elif score >= 40:
+        return "Moderate"
+
+    return "Poor"
+
 
 class JSMaintainabilityAnalyzer:
 
@@ -9,6 +25,7 @@ class JSMaintainabilityAnalyzer:
     ):
 
         self.repo_path = repo_path
+        self._cache = None
 
     def get_js_files(self):
 
@@ -48,11 +65,17 @@ class JSMaintainabilityAnalyzer:
 
     def analyze(self):
 
+        if self._cache is not None:
+            return self._cache
+
         findings = []
 
         for file_path in self.get_js_files():
 
             try:
+
+                if os.path.getsize(file_path) > MAX_FILE_SIZE:
+                    continue
 
                 with open(
                     file_path,
@@ -139,15 +162,19 @@ class JSMaintainabilityAnalyzer:
                     "comment_ratio":
                     comment_ratio,
 
-                    "maintainability":
-                    score
+                    "score":
+                    score,
+
+                    "status":
+                    get_maintainability_status(score)
                 })
 
             except Exception:
 
                 continue
 
-        return findings
+        self._cache = findings
+        return self._cache
 
     def summary(self):
 
@@ -159,7 +186,7 @@ class JSMaintainabilityAnalyzer:
 
         scores = [
 
-            item["maintainability"]
+            item["score"]
 
             for item in findings
         ]
@@ -173,22 +200,6 @@ class JSMaintainabilityAnalyzer:
             2
         )
 
-        if average_score >= 85:
-
-            status = "Excellent"
-
-        elif average_score >= 70:
-
-            status = "Good"
-
-        elif average_score >= 50:
-
-            status = "Moderate"
-
-        else:
-
-            status = "Poor"
-
         return {
 
             "files_analyzed":
@@ -198,7 +209,7 @@ class JSMaintainabilityAnalyzer:
             average_score,
 
             "status":
-            status,
+            get_maintainability_status(average_score),
 
             "lowest_score":
             min(scores),
@@ -212,12 +223,12 @@ class JSMaintainabilityAnalyzer:
         limit=10
     ):
 
-        findings = self.analyze()
+        findings = list(self.analyze())
 
         findings.sort(
 
             key=lambda x:
-            x["maintainability"]
+            x["score"]
         )
 
         return findings[:limit]
