@@ -2,55 +2,42 @@ import os
 import json
 import subprocess
 
+DEPENDENCY_TIMEOUT = 120
+
+
 class DependencyAnalyzer:
 
     def __init__(self, repo_path):
 
         self.repo_path = repo_path
+        self._cache = None
 
     def find_requirements(self):
 
-        for root, dirs, files in os.walk(
-            self.repo_path
-        ):
-        # for root, dirs, files in os.walk(self.repo_path):
+        for root, dirs, files in os.walk(self.repo_path):
 
-        #     print("ROOT:", root)
-        #     print("FILES:", files)
-
-        #     if "requirements.txt" in files:
-
-        #         return os.path.join(
-        #             root,
-        #             "requirements.txt"
-        #         )
+            dirs[:] = [
+                d for d in dirs
+                if d not in {".git", "venv", ".venv", "node_modules", "__pycache__"}
+            ]
 
             if "requirements.txt" in files:
 
-                return os.path.join(
-                    root,
-                    "requirements.txt"
-                )
+                return os.path.join(root, "requirements.txt")
 
         return None
-    
+
     def analyze(self):
 
-
-
-        print("DEPENDENCY ANALYZER STARTED")
+        if self._cache is not None:
+            return self._cache
 
         requirements = self.find_requirements()
 
-        print("FOUND FILE:", requirements)
-
-        requirements = (
-            self.find_requirements()
-        )
-
         if not requirements:
 
-            return []
+            self._cache = []
+            return self._cache
 
         try:
 
@@ -63,94 +50,83 @@ class DependencyAnalyzer:
                     "json"
                 ],
                 capture_output=True,
-                text=True
+                text=True,
+                timeout=DEPENDENCY_TIMEOUT
             )
-            print("FILE:", requirements)
-            print("RETURN CODE:", result.returncode)
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
 
-            # data = json.loads(
-            #     result.stdout
-            # )
             if result.returncode != 0:
 
-                return [{
+                self._cache = [{
                     "package": "Dependency Resolution Error",
                     "version": "-",
                     "id": "N/A",
-                    "description": result.stderr
+                    "description": result.stderr[:500]
                 }]
 
+                return self._cache
+
             data = json.loads(result.stdout)
-            print("RAW JSON:")
-            print(data)
 
             findings = []
 
-            for package in data.get(
-                "dependencies",
-                []
-            ):
+            for package in data.get("dependencies", []):
 
-                vulnerabilities = package.get(
-                    "vulns",
-                    []
-                )
+                vulnerabilities = package.get("vulns", [])
 
                 for vuln in vulnerabilities:
 
                     findings.append({
-                        "package":
-                        package["name"],
-
-                        "version":
-                        package["version"],
-
-                        "id":
-                        vuln["id"],
-
-                        "description":
-                        vuln.get(
-                            "description",
-                            ""
-                        )
+                        "package": package["name"],
+                        "version": package["version"],
+                        "id": vuln["id"],
+                        "description": vuln.get("description", "")
                     })
 
-            return findings
+            self._cache = findings
+            return self._cache
+
+        except subprocess.TimeoutExpired:
+
+            self._cache = [{
+                "package": "Dependency Resolution Error",
+                "version": "-",
+                "id": "N/A",
+                "description": "pip-audit took too long and was stopped."
+            }]
+
+            return self._cache
 
         except Exception as e:
 
-            print("ERROR:", e)
+            self._cache = [{
+                "package": "Dependency Resolution Error",
+                "version": "-",
+                "id": "N/A",
+                "description": str(e)
+            }]
 
-            return []
-        
+            return self._cache
+
     def summary(self):
 
         findings = self.analyze()
-
-        unique_packages = len(
-            set(
-                item["package"]
-                for item in findings
-            )
-        )
 
         if findings and findings[0]["package"] == "Dependency Resolution Error":
 
             return {
                 "status": "Audit Failed",
-                "reason": "Dependency conflicts detected"
+                "reason": findings[0]["description"]
             }
+
+        unique_packages = len(
+            set(item["package"] for item in findings)
+        )
 
         return {
             "vulnerabilities": len(findings),
             "affected_packages": unique_packages
         }
-    
-    def top_findings(
-        self,
-        limit=20
-    ):
+
+    def top_findings(self, limit=20):
 
         return self.analyze()[:limit]
