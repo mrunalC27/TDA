@@ -78,12 +78,3 @@ def recent_scans():
     return {"scans": scans}
 
 
-import shutil
-
-@app.get("/api/debug-jscpd")
-def debug_jscpd():
-
-    return {
-        "jscpd_path": shutil.which("jscpd"),
-        "path_env": os.environ.get("PATH")
-    }
