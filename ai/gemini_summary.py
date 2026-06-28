@@ -42,4 +42,11 @@ Report:
 
         except Exception as e:
 
+            if "Failed to connect" in str(e) or "Connection refused" in str(e):
+
+                return (
+                    "AI insights run on a local model and are only available when running "
+                    "Refactr on your own machine. The rest of this analysis is unaffected."
+                )
+
             return f"AI Summary Unavailable: {str(e)}"

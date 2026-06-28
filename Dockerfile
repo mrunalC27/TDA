@@ -8,8 +8,9 @@ RUN apt-get update && apt-get install -y \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Install jscpd globally
-RUN npm install -g jscpd
+# Install jscpd globally and ensure its bin directory is on PATH
+RUN npm install -g jscpd \
+    && ln -sf $(npm root -g)/.bin/jscpd /usr/local/bin/jscpd
 
 WORKDIR /app
 
