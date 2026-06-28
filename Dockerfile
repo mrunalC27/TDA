@@ -10,7 +10,8 @@ RUN apt-get update && apt-get install -y \
 
 # Install jscpd globally and ensure its bin directory is on PATH
 RUN npm install -g jscpd \
-    && ln -sf $(npm root -g)/.bin/jscpd /usr/local/bin/jscpd
+    && which jscpd \
+    && jscpd --version
 
 WORKDIR /app
 
