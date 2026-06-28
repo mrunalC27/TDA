@@ -1,0 +1,9 @@
+venv/
+frontend/
+cloned_repos/
+data/
+__pycache__/
+*.pyc
+.env
+.git/
+report/
