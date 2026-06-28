@@ -5,7 +5,7 @@ import threading
 from core.scan_history_store import get_all_scans
 from backend.jobs import create_job, update_job_step, complete_job, fail_job, get_job
 from backend.orchestrator import run_analysis
-
+import os
 app = FastAPI(title="Refactr API")
 
 app.add_middleware(
@@ -76,3 +76,14 @@ def recent_scans():
     scans = get_all_scans(limit=20)
 
     return {"scans": scans}
+
+
+import shutil
+
+@app.get("/api/debug-jscpd")
+def debug_jscpd():
+
+    return {
+        "jscpd_path": shutil.which("jscpd"),
+        "path_env": os.environ.get("PATH")
+    }
