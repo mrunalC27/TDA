@@ -1,7 +1,7 @@
 import axios from "axios";
-
-const API_BASE = "http://localhost:8000";
-
+console.log("VITE_API_BASE =", import.meta.env.VITE_API_BASE);
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+console.log("API_BASE =", API_BASE);
 export async function startAnalysis(repoUrl) {
     const response = await axios.post(`${API_BASE}/api/analyze`, {
         repo_url: repoUrl,
