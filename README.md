@@ -4,9 +4,17 @@
  
 An AI-driven code governance platform that audits any GitHub repository across four pillars — structural code quality, security, contributor velocity, and AI-synthesized insight — and produces an actionable health report, regardless of language.
  
+## Live Demo
+
+**[tda-green.vercel.app](https://tda-green.vercel.app)**
+
+The deployed version runs the full pipeline (structural, security, contributor analysis, caching) against any public GitHub repository. AI-synthesized insights (executive summary, roadmap, architecture evaluation) require a local Ollama instance and are not available in the hosted version — see [Deployment](#deployment) below.
+
+> First request after a period of inactivity may take 30-60 seconds while the free-tier backend wakes up.
+
 ## What it does
  
-Paste a GitHub URL. Refactr clones the repository, detects its primary language, runs 20+ analyzers across structural, security, and contributor dimensions, and produces a single health score plus a locally-generated executive summary, remediation roadmap, and architecture evaluation. Repeat scans of an unchanged repository return instantly via commit-hash-based caching.
+Paste a GitHub URL. Refactr clones the repository, detects its primary language, runs 20+ analyzers across structural, security, and contributor dimensions, and produces a single health score plus an AI-generated executive summary, remediation roadmap, and architecture evaluation. Repeat scans of an unchanged repository return instantly via commit-hash-based caching. AI synthesis runs on a local Ollama model when self-hosted; the hosted demo runs the full analysis pipeline without AI synthesis.
  
 ## Four Pillars
  
@@ -139,6 +147,20 @@ Open the URL Vite prints (typically `http://localhost:5173`).
  
 Refactr checks the latest commit hash on a repository's default branch before cloning. If a complete result already exists for that exact commit, it's returned instantly with no clone, no re-analysis, and no AI calls. A new commit, or a repository scanned for the first time, runs the full pipeline and caches the result for next time.
  
+## Deployment
+
+Refactr is deployed as two independent services:
+
+- **Frontend** ([Vercel](https://vercel.com)) — static build of the React app. Root directory must be set to `frontend`. Requires a `VITE_API_BASE` environment variable pointing at the backend URL, set **before** the first production build (Vite inlines environment variables at build time — adding the variable after a deploy requires a fresh build, not just a redeploy, to take effect).
+- **Backend** ([Render](https://render.com)) — deployed via the included `Dockerfile`, which installs Node.js and `jscpd` alongside the Python environment so duplication detection and `npm audit` work in production, not just locally.
+
+### Deployment notes
+
+- **The Dockerfile must be picked up at service creation, not added later.** Render does not reliably let you convert an existing native-runtime ("Python 3") service into a Docker-runtime service after the fact — pushing a `Dockerfile` to a repo connected to an already-existing native service may build successfully without ever being used to serve traffic. If a deployed service's `Dockerfile` changes don't appear to take effect, create a new service from scratch and explicitly select Docker as the environment during creation.
+- **CORS origins must match exactly.** `backend/main.py`'s `allow_origins` list requires an exact string match against the browser's `Origin` header — no trailing slash, no leading/trailing whitespace, correct scheme (`https://`). A single stray character here fails silently as a generic network error in the browser rather than a clear CORS message in some cases.
+- **Render's free tier has an ephemeral filesystem.** The SQLite database (scan history, job state, cache) resets on every redeploy. For persistent scan history across deploys, an external database (e.g. a managed Postgres instance) would be required.
+- **Ollama does not run on the deployed backend.** AI-synthesized insights gracefully degrade to an explanatory message in production rather than failing or hanging.
+
 ## Known limitations
  
 - **Test coverage is a static estimate, not real execution coverage.** Refactr does not install dependencies or run the target repository's test suite. It detects test-file presence by naming convention and reports an estimated file-level coverage signal, clearly labeled as such in the output.
@@ -149,8 +171,10 @@ Refactr checks the latest commit hash on a repository's default branch before cl
 - **Shallow clone by default.** Repos are cloned with `depth=1` for speed; full commit history is fetched separately only when churn/contributor analysis needs it.
 - **AI quality depends on the local model.** Refactr ships configured for `mistral` via Ollama. Larger or more specialized models will produce better-reasoned summaries at the cost of speed.
 - **Single-threaded, synchronous analysis pipeline.** Each analysis runs all ~25 analyzers sequentially in a background thread per request. This is appropriate for local/single-user use, not concurrent multi-user production traffic.
+- **AI features are local-only by default.** The hosted demo does not run Ollama; deploying with AI synthesis enabled requires either running Ollama on the same host as the backend, or swapping the AI provider for a hosted API.
+
 ## Tech stack
- 
+
 - **Backend**: FastAPI, Uvicorn, background-threaded job execution
 - **Frontend**: React, Vite, Tailwind CSS, Recharts, react-markdown
 - **Static analysis**: radon, vulture, bandit, lizard, jscpd
@@ -158,3 +182,4 @@ Refactr checks the latest commit hash on a repository's default branch before cl
 - **AI synthesis**: Ollama (local, no API key required)
 - **Persistence**: SQLite (scan history, job state, full-result cache)
 - **Version control integration**: GitPython, GitHub REST API
+- **Deployment**: Docker, Render (backend), Vercel (frontend)
